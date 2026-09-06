@@ -1,5 +1,10 @@
 KoolCenter Lucky Changelog
 ===========================================
+1.6.6
+   - fix        按新版KoolCenter/iStore真实逻辑处理更新按钮：版本差异由curVersion/lastVersion与curRelease/lastRelease直接比较产生
+   - fix        仅对name=lucky跳过官方版本比对，保留原Lucky模块ID、名称、图标、页面、版本显示、打开和卸载行为
+   - cleanup    移除无效的install=4延迟覆盖方案；卸载插件时仅在补丁仍存在时恢复软件中心原脚本
+
 1.6.5
    - fix        修复KoolCenter在插件install.sh结束后再次把softcenter_module_lucky_install覆盖为1，导致官方版本比对和“更新”按钮重新出现
    - fix        安装完成后延迟恢复install=4；不修改Lucky模块名、页面、图标、作者或其它插件显示信息

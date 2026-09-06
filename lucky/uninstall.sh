@@ -7,6 +7,16 @@ if [ "$lucky_enable" = "1" ] || pidof lucky >/dev/null 2>&1 || [ -d "/koolshare/
 	sh /koolshare/scripts/lucky_config.sh stop
 fi
 
+# 如果软件中心版本比对脚本仍是Lucky安装时修改的版本，则恢复原文件。
+for BACKUP in $(find /koolshare /www -type f -name "*.lucky-update.orig" 2>/dev/null); do
+	TARGET=${BACKUP%.lucky-update.orig}
+	if [ -f "${TARGET}" ] && grep -q 'col.name!="lucky"&&' "${TARGET}" 2>/dev/null; then
+		cat "${BACKUP}" > "${TARGET}" 2>/dev/null && rm -f "${BACKUP}" 2>/dev/null
+	else
+		rm -f "${BACKUP}" 2>/dev/null
+	fi
+done
+
 find /koolshare/init.d/ -name "*lucky*" | xargs rm -rf
 rm -rf /koolshare/bin/lucky 2>/dev/null
 rm -rf /tmp/lucky 2>/dev/null
