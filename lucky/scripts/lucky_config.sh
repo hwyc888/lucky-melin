@@ -19,8 +19,11 @@ set_lock(){
 }
 
 unset_lock(){
+	# Keep the lock file inode stable. Removing it after unlock creates a race
+	# where another process can hold the old inode while a third process locks
+	# a newly-created file with the same path.
 	flock -u 999
-	rm -rf ${LOCK_FILE}
+	exec 999>&-
 }
 
 number_test(){
@@ -47,6 +50,16 @@ detect_running_status(){
 			return 1
 		fi
 	done
+	# Require the same PID to stay alive for one more second. Under perp a
+	# crash/restart loop can otherwise look healthy merely because a new PID
+	# appears immediately after the previous process exits.
+	local STABLE_PID="${PID}"
+	sleep 1
+	PID=$(pidof ${BINNAME})
+	if [ -z "${PID}" ] || [ "${PID}" != "${STABLE_PID}" ]; then
+		echo_date "🔴$1进程启动后未能稳定运行，已判定启动失败！"
+		return 1
+	fi
 	echo_date "🟢Lucky 启动成功，pid：${PID}"
 	return 0
 }
@@ -138,15 +151,13 @@ start_lucky_process(){
 		mkdir -p /koolshare/perp/lucky
 		cat >/koolshare/perp/lucky/rc.main <<-EOF
 			#!/bin/sh
-			/koolshare/scripts/base.sh
-			if test \${1} = 'start' ; then
-				exec lucky -cd /koolshare/configs/lucky/
+			if [ "\${1}" = "start" ]; then
+				exec /koolshare/bin/lucky -cd /koolshare/configs/lucky/
 			fi
 			exit 0
 
 		EOF
 		chmod +x /koolshare/perp/lucky/rc.main
-		chmod +t /koolshare/perp/lucky/
 		sync
 		perpctl A lucky >/dev/null 2>&1
 		perpctl u lucky >/dev/null 2>&1
@@ -285,10 +296,11 @@ start_lucky(){
 	sleep 1
 
 	# 4. start process
-	start_lucky_process
-
-
-
+	if ! start_lucky_process; then
+		echo_date "❌Lucky 启动失败，已停止守护并清理残留进程状态。"
+		return 1
+	fi
+	return 0
 }
 
 

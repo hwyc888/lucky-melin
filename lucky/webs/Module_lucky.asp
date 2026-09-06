@@ -137,6 +137,7 @@ var noChange = 0;
 var log_poll_timer = null;
 var log_poll_attempts = 0;
 var LOG_POLL_MAX_ATTEMPTS = 120;
+var status_poll_timer = null;
 var params_check = ['lucky_watchdog','lucky_reset_safeurl','lucky_reset_user','lucky_reset_port','lucky_reset_disable'];
 var params_input = ['lucky_port','lucky_safeurl'];
 
@@ -149,7 +150,11 @@ function init() {
 	show_menu(menu_hook);
 	register_event();
 	get_dbus_data();
-	check_status();
+	if(dbus["lucky_enable"] == "1"){
+		check_status();
+	}else{
+		E("lucky_status").innerHTML = "Lucky 插件未启用";
+	}
 }
 
 function get_dbus_data(){
@@ -256,9 +261,36 @@ function register_event(){
 			$('#loadingBarBlock').offset({top: log_h_offset, left: log_w_offset});
 		}
 	});
+	document.addEventListener("visibilitychange", function(){
+		if(document.hidden){
+			if(status_poll_timer){
+				clearTimeout(status_poll_timer);
+				status_poll_timer = null;
+			}
+		}else if(dbus["lucky_enable"] == "1"){
+			check_status();
+		}
+	});
+}
+
+function schedule_status_check(delay){
+	if(status_poll_timer){
+		clearTimeout(status_poll_timer);
+		status_poll_timer = null;
+	}
+	if(!document.hidden && dbus["lucky_enable"] == "1"){
+		status_poll_timer = setTimeout(check_status, delay);
+	}
 }
 
 function check_status(){
+	if(status_poll_timer){
+		clearTimeout(status_poll_timer);
+		status_poll_timer = null;
+	}
+	if(document.hidden || dbus["lucky_enable"] != "1"){
+		return;
+	}
 	var id = parseInt(Math.random() * 100000000);
 	var postData = {"id": id, "method": "lucky_config.sh", "params":['status'], "fields": ""};
 	$.ajax({
@@ -268,16 +300,20 @@ function check_status(){
 		data: JSON.stringify(postData),
 		success: function (response) {
 			E("lucky_status").innerHTML = response.result;
-			setTimeout("check_status();", 10000);
+			schedule_status_check(15000);
 		},
 		error: function(){
 			E("lucky_status").innerHTML = "获取运行状态失败";
-			setTimeout("check_status();", 5000);
+			schedule_status_check(10000);
 		}
 	});
 }
 
 function save(flag){
+	if(status_poll_timer){
+		clearTimeout(status_poll_timer);
+		status_poll_timer = null;
+	}
 	var db_lucky = {};
 	if(flag){
 		console.log(flag)
@@ -323,6 +359,20 @@ function get_log(flag){
 		dataType: 'text',
 		success: function(response) {
 			var retArea = E("log_content");
+			if(flag == 1){
+				if(log_poll_timer){
+					clearTimeout(log_poll_timer);
+					log_poll_timer = null;
+				}
+				log_poll_attempts = 0;
+				retArea.value = response.myReplace("DD01N05S", " ");
+				E("ok_button").style.visibility = "visible";
+				retArea.scrollTop = retArea.scrollHeight;
+				count_down = -1;
+				refresh_flag = 0;
+				count_down_close();
+				return false;
+			}
 			if (response.search("DD01N05S") != -1) {
 				if(log_poll_timer){
 					clearTimeout(log_poll_timer);

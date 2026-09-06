@@ -146,8 +146,13 @@ install_now() {
 
 	# dbus value
 	echo_date "设置插件默认参数..."
+	local BINARY_VER=$(/koolshare/bin/lucky -info 2>/dev/null | grep -o '"Version":"[^"]*"' | sed 's/"Version":"\([^"]*\)"/\1/' | head -n1)
 	dbus set lucky_version="${PLVER}"
-	dbus set lucky_binary="2.10.9"
+	if [ -n "${BINARY_VER}" ]; then
+		dbus set lucky_binary="${BINARY_VER}"
+	else
+		dbus set lucky_binary="unknown"
+	fi
 	dbus set softcenter_module_lucky_version="${PLVER}"
 	dbus set softcenter_module_lucky_install="1"
 	dbus set softcenter_module_lucky_name="${module}"

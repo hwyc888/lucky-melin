@@ -17,6 +17,7 @@ rm -rf /koolshare/scripts/lucky_install.sh 2>/dev/null
 rm -rf /koolshare/scripts/uninstall_lucky.sh 2>/dev/null
 rm -rf /koolshare/configs/lucky 2>/dev/null
 rm -rf /tmp/upload/lucky* 2>/dev/null
+rm -f /var/lock/lucky.lock /tmp/lucky.pid /tmp/var/lucky.pid 2>/dev/null
 
 dbus remove lucky_version
 dbus remove lucky_binary

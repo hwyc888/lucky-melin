@@ -91,8 +91,21 @@ jobs:
       run: |
         VERSION="${{ steps.get_version.outputs.version }}"
         ARCHIVE_NAME="${PACKAGE_PREFIX}_v${VERSION}.tar.gz"
+
+        # KoolCenter installs and invokes these files directly. Keep executable
+        # modes explicit so releases are correct even when commits originate
+        # from a Windows checkout.
+        chmod 755 lucky/install.sh lucky/uninstall.sh lucky/scripts/lucky_config.sh lucky/bin/lucky
+        test -x lucky/install.sh
+        test -x lucky/uninstall.sh
+        test -x lucky/scripts/lucky_config.sh
+        test -x lucky/bin/lucky
+
         tar --exclude='.git*' --exclude='.github' --exclude='*.tar.gz' \
             --exclude='*.backup' -czf "$ARCHIVE_NAME" lucky/
+
+        # Verify the installer exists in the generated package.
+        tar -tzf "$ARCHIVE_NAME" | grep -qx 'lucky/install.sh'
         
         # 计算 MD5 值（Linux md5sum 命令输出格式：md5sum filename）
         MD5=$(md5sum "$ARCHIVE_NAME" | cut -d' ' -f1)
