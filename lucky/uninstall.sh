@@ -2,7 +2,7 @@
 eval $(dbus export lucky_)
 source /koolshare/scripts/base.sh
 
-if [ "$lucky_enable" == "1" ];then
+if [ "$lucky_enable" = "1" ] || pidof lucky >/dev/null 2>&1 || [ -d "/koolshare/perp/lucky" ];then
 	echo_date "先关闭Luckky插件！"
 	sh /koolshare/scripts/lucky_config.sh stop
 fi

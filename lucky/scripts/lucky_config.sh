@@ -44,10 +44,11 @@ detect_running_status(){
 		PID=$(pidof ${BINNAME})
 		if [ "$i" -lt 1 ]; then
 			echo_date "🔴$1进程启动失败，请检查你的配置！"
-			return
+			return 1
 		fi
 	done
 	echo_date "🟢Lucky 启动成功，pid：${PID}"
+	return 0
 }
 
 check_status(){
@@ -99,16 +100,35 @@ formatTime() {
 }
 
 close_lucky_process(){
-	lucky_process=$(pidof lucky)
+	# Always tear down the supervisor first.  The old code only removed the
+	# perp service when a Lucky PID existed; after an abnormal exit this could
+	# leave a stale supervisor behind and later create duplicate/repeated starts.
+	if [ -d "/koolshare/perp/lucky" ]; then
+		perpctl d lucky >/dev/null 2>&1
+		rm -rf /koolshare/perp/lucky
+	fi
+
+	local lucky_process=$(pidof lucky)
 	if [ -n "${lucky_process}" ]; then
 		echo_date "⛔关闭Lucky进程..."
-		if [ -f "/koolshare/perp/lucky/rc.main" ]; then
-			perpctl d lucky >/dev/null 2>&1
-		fi
-		rm -rf /koolshare/perp/lucky
 		killall lucky >/dev/null 2>&1
-		kill -9 "${lucky_process}" >/dev/null 2>&1
+
+		# Give Lucky a short grace period to close sockets/listeners cleanly.
+		# Force-kill only if it is still alive, avoiding unnecessary kernel
+		# network resource churn on every normal restart.
+		local i=20
+		while [ -n "$(pidof lucky)" -a "$i" -gt 0 ]; do
+			usleep 100000
+			i=$(($i - 1))
+		done
+		if [ -n "$(pidof lucky)" ]; then
+			killall -9 lucky >/dev/null 2>&1
+		fi
 	fi
+
+	# start-stop-daemon uses this pid file in non-watchdog mode.  Remove stale
+	# files even when the process has already disappeared.
+	rm -f /tmp/lucky.pid /tmp/var/lucky.pid >/dev/null 2>&1
 }
 
 start_lucky_process(){
@@ -130,14 +150,25 @@ start_lucky_process(){
 		sync
 		perpctl A lucky >/dev/null 2>&1
 		perpctl u lucky >/dev/null 2>&1
-		detect_running_status lucky
+		if ! detect_running_status lucky; then
+			# Do not leave perp in an endless crash/restart loop when Lucky cannot
+			# stay up during the initial startup check.
+			perpctl d lucky >/dev/null 2>&1
+			rm -rf /koolshare/perp/lucky
+			return 1
+		fi
 	else
 		echo_date "🟠启动 Lucky 进程..."
-		rm -rf /tmp/lucky.pid
+		mkdir -p /tmp/var
+		rm -f /tmp/lucky.pid /tmp/var/lucky.pid
 		start-stop-daemon -S -q -b -m -p /tmp/var/lucky.pid -x /koolshare/bin/lucky -- -cd /koolshare/configs/lucky/
 		sleep 2
-		detect_running_status lucky
+		if ! detect_running_status lucky; then
+			rm -f /tmp/lucky.pid /tmp/var/lucky.pid >/dev/null 2>&1
+			return 1
+		fi
 	fi
+	return 0
 }
 
 read_version() {
@@ -188,33 +219,36 @@ reset_param() {
 	if pidof lucky > /dev/null; then
 
 		# 初始化命令
-		command="lucky -cd /koolshare/configs/lucky"
+		base_command="lucky -cd /koolshare/configs/lucky"
+		command="$base_command"
 
 		# 根据 dbus 参数值拼接命令选项
-		if [ "${lucky_reset_safeurl}" -eq 1 ]; then
+		if [ "${lucky_reset_safeurl}" = "1" ]; then
 			command="$command -rCancelSafeURL"
 			echo_date "🔸取消安全入口"
 		fi
 
-		if [ "${lucky_reset_user}" -eq 1 ]; then
+		if [ "${lucky_reset_user}" = "1" ]; then
 			command="$command -rResetUser"
 			echo_date "🔸重置用户账号密码"
 		fi
 
-		if [ "${lucky_reset_port}" -eq 1 ]; then
+		if [ "${lucky_reset_port}" = "1" ]; then
 			command="$command -rSetHttpAdminPort 16601 -rSetHttpsAdminPort 16601"
 			echo_date "🔸重置后台Http(s)访问端口"
 		fi
 
-		if [ "${lucky_reset_disable}" -eq 1 ]; then
+		if [ "${lucky_reset_disable}" = "1" ]; then
 			command="$command -rDisable2FA"
 			echo_date "🔸禁用2FA验证"
 		fi
 
 		# 执行命令
-		if [ "$command" != "lucky" ]; then
+		if [ "$command" != "$base_command" ]; then
 			echo_date "执行命令: $command"
-			eval $command
+			eval "$command"
+		else
+			echo_date "ℹ️未选择重置项目，跳过执行。"
 		fi
 		echo_date "✅Lucky 重置成功."
 		dbus set lucky_reset_safeurl="0"
@@ -274,8 +308,18 @@ boot_up)
 	;;
 start_nat)
 	if [ "${lucky_enable}" == "1" ]; then
-	    logger "[软件中心]-[${0##*/}]: NAT重启触发重新启动Lucky！"
-		lucky -cd /koolshare/configs/lucky -rRestart
+		# Older plugin versions registered an N110 NAT hook and restarted the
+		# whole Lucky process on every firewall/NAT event.  On HND/AXHND routers
+		# these events can occur repeatedly, causing avoidable socket/netfilter
+		# churn and long-term memory/slab growth.  Keep this handler only for
+		# backward compatibility with a stale N110 symlink: a healthy Lucky
+		# process must not be restarted just because NAT was reloaded.
+		if pidof lucky >/dev/null 2>&1; then
+			logger "[软件中心]-[${0##*/}]: NAT重启，Lucky运行正常，跳过重复重启。"
+		else
+			logger "[软件中心]-[${0##*/}]: NAT重启时检测到Lucky未运行，重新启动。"
+			start_lucky >/dev/null 2>&1
+		fi
 	fi
 	;;	
 stop)

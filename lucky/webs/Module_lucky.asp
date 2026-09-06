@@ -134,6 +134,9 @@ var count_down;
 var _responseLen;
 var STATUS_FLAG;
 var noChange = 0;
+var log_poll_timer = null;
+var log_poll_attempts = 0;
+var LOG_POLL_MAX_ATTEMPTS = 120;
 var params_check = ['lucky_watchdog','lucky_reset_safeurl','lucky_reset_user','lucky_reset_port','lucky_reset_disable'];
 var params_input = ['lucky_port','lucky_safeurl'];
 
@@ -299,6 +302,11 @@ function save(flag){
 		dataType: "json",
 		success: function(response) {
 			if(response.result == id){
+				if(log_poll_timer){
+					clearTimeout(log_poll_timer);
+					log_poll_timer = null;
+				}
+				log_poll_attempts = 0;
 				get_log();
 			}
 		}
@@ -316,6 +324,11 @@ function get_log(flag){
 		success: function(response) {
 			var retArea = E("log_content");
 			if (response.search("DD01N05S") != -1) {
+				if(log_poll_timer){
+					clearTimeout(log_poll_timer);
+					log_poll_timer = null;
+				}
+				log_poll_attempts = 0;
 				retArea.value = response.myReplace("DD01N05S", " ");
 				E("ok_button").style.visibility = "visible";
 				retArea.scrollTop = retArea.scrollHeight;
@@ -329,11 +342,24 @@ function get_log(flag){
 				count_down_close();
 				return false;
 			}
-			setTimeout("get_log(" + flag + ");", 500);
+			log_poll_attempts++;
+			if(log_poll_attempts >= LOG_POLL_MAX_ATTEMPTS){
+				log_poll_timer = null;
+				E("loading_block_title").innerHTML = "操作超时";
+				retArea.value = response + "\n\n等待后台操作完成超时，请关闭窗口后检查运行状态。";
+				E("ok_button").style.visibility = "visible";
+				return false;
+			}
+			log_poll_timer = setTimeout(function(){ get_log(flag); }, 500);
 			retArea.value = response.myReplace("DD01N05S", " ");
 			retArea.scrollTop = retArea.scrollHeight;
 		},
 		error: function(xhr) {
+			if(log_poll_timer){
+				clearTimeout(log_poll_timer);
+				log_poll_timer = null;
+			}
+			log_poll_attempts = 0;
 			E("loading_block_title").innerHTML = "暂无日志信息 ...";
 			E("log_content").value = "日志文件为空，请关闭本窗口！";
 			E("ok_button").style.visibility = "visible";
@@ -355,6 +381,11 @@ function showALLoadingBar(){
 	$('#loadingBarBlock').offset({top: log_h_offset, left: log_w_offset});
 }
 function hideALLoadingBar(){
+	if(log_poll_timer){
+		clearTimeout(log_poll_timer);
+		log_poll_timer = null;
+	}
+	log_poll_attempts = 0;
 	E("LoadingBar").style.visibility = "hidden";
 	E("ok_button").style.visibility = "hidden";
 	if (refresh_flag == "1"){

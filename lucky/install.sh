@@ -109,7 +109,7 @@ install_now() {
 	local lucky_enable=$(dbus get lucky_enable)
 	local lucky_process=$(pidof lucky)
 	local lucky_install=$(dbus get softcenter_module_lucky_install)
-	if [ "$lucky_enable" == "1" -o -n "${lucky_process}" ];then
+	if [ "$lucky_enable" = "1" ] || [ -n "${lucky_process}" ] || [ -d "/koolshare/perp/lucky" ];then
 		echo_date "先关闭Lucky插件！以保证更新成功！"
 		sh /koolshare/scripts/lucky_config.sh stop
 	fi
@@ -134,9 +134,10 @@ install_now() {
 	cp -rf /tmp/${module}/webs/* /koolshare/webs/
 	cp -rf /tmp/${module}/uninstall.sh /koolshare/scripts/uninstall_${module}.sh
 	
-	#创建开机自启任务
+	# 创建开机自启任务。
+	# 不再创建 N110lucky.sh NAT 钩子：旧版本会在每次 NAT/防火墙重载时
+	# 执行 Lucky 整体重启，容易造成反复重建 socket/netfilter 资源。
 	[ ! -L "/koolshare/init.d/S110lucky.sh" ] && ln -sf /koolshare/scripts/lucky_config.sh /koolshare/init.d/S110lucky.sh
-	[ ! -L "/koolshare/init.d/N110lucky.sh" ] && ln -sf /koolshare/scripts/lucky_config.sh /koolshare/init.d/N110lucky.sh
 
 	# Permissions
 	chmod +x /koolshare/scripts/lucky* >/dev/null 2>&1
