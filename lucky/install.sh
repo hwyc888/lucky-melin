@@ -93,61 +93,19 @@ dbus_nset(){
 	fi
 }
 
-patch_softcenter_lucky_update_compare(){
-	local PATCHED="0"
-	local ROOT
-	local FILE
-	local TMP
+restore_softcenter_lucky_update_compare(){
 	local BACKUP
-	local GUARD_COUNT
+	local TARGET
 
-	# 新版KoolCenter/iStore卡片界面直接比较curVersion/lastVersion和release决定是否显示更新。
-	# 这里只对lucky跳过该官方版本比较，不改变插件身份或显示信息。
-	for ROOT in /koolshare /www; do
-		[ -d "${ROOT}" ] || continue
-		for FILE in $(find "${ROOT}" -type f \( -name "*.js" -o -name "*.asp" -o -name "*.htm" -o -name "*.html" \) 2>/dev/null); do
-			grep -q "curVersion" "${FILE}" 2>/dev/null || continue
-			grep -q "lastVersion" "${FILE}" 2>/dev/null || continue
-			grep -q "curRelease" "${FILE}" 2>/dev/null || continue
-			grep -q "lastRelease" "${FILE}" 2>/dev/null || continue
-			grep -q "cbi-button-reload" "${FILE}" 2>/dev/null || continue
-
-			GUARD_COUNT=$(grep -o 'col.name!="lucky"&&' "${FILE}" 2>/dev/null | wc -l)
-			if [ "${GUARD_COUNT}" -ge "2" ]; then
-				PATCHED="1"
-				continue
-			fi
-
-			TMP="${FILE}.lucky-update.tmp"
-			BACKUP="${FILE}.lucky-update.orig"
-			if ! sed -E \
-				-e 's/\(\(([A-Za-z_][A-Za-z0-9_]*)=([A-Za-z_][A-Za-z0-9_]*)\.col\)==null\?void 0:\1\.curVersion\)/\2.col.name!="lucky"\&\&((\1=\2.col)==null?void 0:\1.curVersion)/' \
-				-e 's/\(\(([A-Za-z_][A-Za-z0-9_]*)=([A-Za-z_][A-Za-z0-9_]*)\.col\)==null\?void 0:\1\.curRelease\)/\2.col.name!="lucky"\&\&((\1=\2.col)==null?void 0:\1.curRelease)/' \
-				"${FILE}" > "${TMP}" 2>/dev/null; then
-				sed -r \
-					-e 's/\(\(([A-Za-z_][A-Za-z0-9_]*)=([A-Za-z_][A-Za-z0-9_]*)\.col\)==null\?void 0:\1\.curVersion\)/\2.col.name!="lucky"\&\&((\1=\2.col)==null?void 0:\1.curVersion)/' \
-					-e 's/\(\(([A-Za-z_][A-Za-z0-9_]*)=([A-Za-z_][A-Za-z0-9_]*)\.col\)==null\?void 0:\1\.curRelease\)/\2.col.name!="lucky"\&\&((\1=\2.col)==null?void 0:\1.curRelease)/' \
-					"${FILE}" > "${TMP}" 2>/dev/null
-			fi
-
-			GUARD_COUNT=$(grep -o 'col.name!="lucky"&&' "${TMP}" 2>/dev/null | wc -l)
-			if [ "${GUARD_COUNT}" -ge "2" ]; then
-				if [ ! -f "${BACKUP}" ] && ! cp -p "${FILE}" "${BACKUP}" 2>/dev/null; then
-					rm -f "${TMP}" 2>/dev/null
-					continue
-				fi
-				if cat "${TMP}" > "${FILE}" 2>/dev/null; then
-					echo_date "已关闭Lucky与软件中心官方版本的更新比对：${FILE}"
-					PATCHED="1"
-				fi
-			fi
-			rm -f "${TMP}" 2>/dev/null
-		done
+	# 2.6.6改用高版本号方案。若从1.6.6升级，只恢复我们曾修改过的软件中心文件。
+	for BACKUP in $(find /koolshare /www -type f -name "*.lucky-update.orig" 2>/dev/null); do
+		TARGET=${BACKUP%.lucky-update.orig}
+		if [ -f "${TARGET}" ] && grep -q 'col.name!="lucky"&&' "${TARGET}" 2>/dev/null; then
+			cat "${BACKUP}" > "${TARGET}" 2>/dev/null && rm -f "${BACKUP}" 2>/dev/null
+		else
+			rm -f "${BACKUP}" 2>/dev/null
+		fi
 	done
-
-	if [ "${PATCHED}" != "1" ]; then
-		echo_date "未找到新版软件中心版本比对脚本，Lucky本身安装不受影响。"
-	fi
 }
 
 install_now() {
@@ -239,8 +197,8 @@ install_now() {
 	dbus_nset lucky_reset_user "0"
 	dbus_nset lucky_safeurl "0"
 
-	# 仅修改新版软件中心对Lucky的更新比对逻辑；不改变模块名、页面、图标或版本显示。
-	patch_softcenter_lucky_update_compare
+	# 从1.6.6升级时撤销旧的软件中心前端补丁；2.6.6之后不再修改软件中心。
+	restore_softcenter_lucky_update_compare
 
 	# re_enable
 	if [ "${lucky_enable}" == "1" ];then

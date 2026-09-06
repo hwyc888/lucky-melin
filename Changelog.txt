@@ -1,5 +1,10 @@
 KoolCenter Lucky Changelog
 ===========================================
+2.6.6
+   - change     插件版本号提升为2.6.6，采用高版本号避免软件中心官方Lucky低版本覆盖更新
+   - cleanup    撤销1.6.6对新版KoolCenter/iStore前端更新比较逻辑的修改，之后不再改软件中心文件
+   - migrate    从1.6.6覆盖安装时仅恢复当时备份的软件中心原文件，Lucky模块ID、页面、图标、作者和现有配置保持不变
+
 1.6.6
    - fix        按新版KoolCenter/iStore真实逻辑处理更新按钮：版本差异由curVersion/lastVersion与curRelease/lastRelease直接比较产生
    - fix        仅对name=lucky跳过官方版本比对，保留原Lucky模块ID、名称、图标、页面、版本显示、打开和卸载行为
