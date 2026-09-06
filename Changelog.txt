@@ -1,5 +1,9 @@
 KoolCenter Lucky Changelog
 ===========================================
+1.6.5
+   - fix        修复KoolCenter在插件install.sh结束后再次把softcenter_module_lucky_install覆盖为1，导致官方版本比对和“更新”按钮重新出现
+   - fix        安装完成后延迟恢复install=4；不修改Lucky模块名、页面、图标、作者或其它插件显示信息
+
 1.6.4
    - fix        恢复原 lucky 软件中心模块身份、Module_lucky.asp 页面、icon-lucky.png 图标及原有显示信息
    - change     仅将 softcenter_module_lucky_install 设置为 4，保持插件正常显示但不再与官方 Lucky 做版本更新比对

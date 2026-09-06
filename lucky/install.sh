@@ -190,6 +190,13 @@ install_now() {
 	fi
 
 	# finish
+	# KoolCenter 的在线安装器会在 install.sh 退出后再次把
+	# softcenter_module_lucky_install 写回 1。延迟到它收尾完成后
+	# 再恢复为 4，只影响软件中心的官方版本比对状态。
+	(
+		sleep 3
+		dbus set softcenter_module_lucky_install="4"
+	) >/dev/null 2>&1 &
 	echo_date "${TITLE}插件安装完毕！"
 	exit_install
 }
