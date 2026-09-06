@@ -1,5 +1,10 @@
 KoolCenter Lucky Changelog
 ===========================================
+1.6.4
+   - fix        恢复原 lucky 软件中心模块身份、Module_lucky.asp 页面、icon-lucky.png 图标及原有显示信息
+   - change     仅将 softcenter_module_lucky_install 设置为 4，保持插件正常显示但不再与官方 Lucky 做版本更新比对
+   - migrate    自动清理 1.6.3 临时 lucky_melin 身份残留，同时保留现有 lucky_ 设置和 /koolshare/configs/lucky 配置数据
+
 1.6.3
    - change     软件中心模块身份从官方 lucky 分离为 lucky_melin，不再与路由器软件中心原 Lucky 插件做版本比较
    - change     插件标题改为 Lucky Merlin，作者改为 hwyc888，项目地址改为 hwyc888/lucky-melin
