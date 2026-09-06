@@ -193,7 +193,10 @@ jobs:
 
         for RUN in "${RUNS[@]}"; do
           IFS=$'\t' read -r RUN_ID STATUS CONCLUSION <<< "$RUN"
-          if [ "$STATUS" != "completed" ] || [ "$RUN_ID" = "$GITHUB_RUN_ID" ] || [ -n "$PREVIOUS_SUCCESS" ] && [ "$RUN_ID" = "$PREVIOUS_SUCCESS" ]; then
+          if [ "$STATUS" != "completed" ] || [ "$RUN_ID" = "$GITHUB_RUN_ID" ]; then
+            continue
+          fi
+          if [ -n "$PREVIOUS_SUCCESS" ] && [ "$RUN_ID" = "$PREVIOUS_SUCCESS" ]; then
             continue
           fi
 
