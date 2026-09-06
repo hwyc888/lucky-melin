@@ -41,7 +41,10 @@ jobs:
       run: |
         echo "🔍 验证项目结构..."
         if [ ! -f "config.json.js" ]; then echo "❌ config.json.js 不存在"; exit 1; fi
-        if [ ! -d "lucky" ]; then echo "❌ lucky 目录不存在"; exit 1; fi
+        if [ ! -d "lucky_melin" ]; then echo "❌ lucky_melin 目录不存在"; exit 1; fi
+        if [ ! -f "lucky_melin/webs/Module_lucky_melin.asp" ]; then echo "❌ 独立管理页面不存在"; exit 1; fi
+        if [ ! -f "lucky_melin/res/icon-lucky_melin.png" ]; then echo "❌ 独立插件图标不存在"; exit 1; fi
+        if ! grep -q '"module": "lucky_melin"' config.json.js; then echo "❌ 软件中心模块身份不是 lucky_melin"; exit 1; fi
         echo "✅ 验证通过"
     
     - name: Extract changelog for version
@@ -77,13 +80,13 @@ jobs:
         fi
         echo "✅ version 已更新"
     
-    # 第二步：更新 lucky/version 文件（暂不提交）
-    - name: Update lucky/version file
+    # 第二步：更新 lucky_melin/version 文件（暂不提交）
+    - name: Update lucky_melin/version file
       run: |
         VERSION="${{ steps.get_version.outputs.version }}"
-        mkdir -p lucky
-        echo "$VERSION" > lucky/version
-        echo "✅ lucky/version 已更新为 $VERSION"
+        mkdir -p lucky_melin
+        echo "$VERSION" > lucky_melin/version
+        echo "✅ lucky_melin/version 已更新为 $VERSION"
     
     # 第三步：创建 tar.gz 压缩包
     - name: Create tar.gz archive
@@ -95,17 +98,17 @@ jobs:
         # KoolCenter installs and invokes these files directly. Keep executable
         # modes explicit so releases are correct even when commits originate
         # from a Windows checkout.
-        chmod 755 lucky/install.sh lucky/uninstall.sh lucky/scripts/lucky_config.sh lucky/bin/lucky
-        test -x lucky/install.sh
-        test -x lucky/uninstall.sh
-        test -x lucky/scripts/lucky_config.sh
-        test -x lucky/bin/lucky
+        chmod 755 lucky_melin/install.sh lucky_melin/uninstall.sh lucky_melin/scripts/lucky_config.sh lucky_melin/bin/lucky
+        test -x lucky_melin/install.sh
+        test -x lucky_melin/uninstall.sh
+        test -x lucky_melin/scripts/lucky_config.sh
+        test -x lucky_melin/bin/lucky
 
         tar --exclude='.git*' --exclude='.github' --exclude='*.tar.gz' \
-            --exclude='*.backup' -czf "$ARCHIVE_NAME" lucky/
+            --exclude='*.backup' -czf "$ARCHIVE_NAME" lucky_melin/
 
         # Verify the installer exists in the generated package.
-        tar -tzf "$ARCHIVE_NAME" | grep -qx 'lucky/install.sh'
+        tar -tzf "$ARCHIVE_NAME" | grep -qx 'lucky_melin/install.sh'
         
         # 计算 MD5 值（Linux md5sum 命令输出格式：md5sum filename）
         MD5=$(md5sum "$ARCHIVE_NAME" | cut -d' ' -f1)
@@ -148,7 +151,7 @@ jobs:
         git config --global user.email "actions@github.com"
         
         # 添加修改的文件
-        git add config.json.js lucky/version
+        git add config.json.js lucky_melin/version
         
         if git diff --cached --quiet; then
           echo "⚠️ 没有需要提交的更改"
@@ -231,7 +234,7 @@ jobs:
 
     - name: Cleanup
       if: always()
-      run: rm -f config.json.js.bak lucky/version.backup 2>/dev/null || true
+      run: rm -f config.json.js.bak lucky_melin/version.backup 2>/dev/null || true
     
     - name: Success
       if: success()

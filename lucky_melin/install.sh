@@ -95,8 +95,8 @@ dbus_nset(){
 
 install_now() {
 	# default value
-	local TITLE="Lucky"
-	local DESCR="端口转发/DDNS/Web服务/Stun内网穿透/网络唤醒/计划任务/ACME自动证书/网络存储"
+	local TITLE="Lucky Merlin"
+	local DESCR="Lucky Merlin 自维护版：端口转发/DDNS/Web服务/Stun内网穿透/网络唤醒/计划任务/ACME自动证书/网络存储"
 	local PLVER=$(cat ${DIR}/version)
 
 	# delete crontabs job first
@@ -108,7 +108,12 @@ install_now() {
 	# stop ddns-go
 	local lucky_enable=$(dbus get lucky_enable)
 	local lucky_process=$(pidof lucky)
-	local lucky_install=$(dbus get softcenter_module_lucky_install)
+	# 兼容从旧的官方模块身份 lucky 升级到自维护模块 lucky_melin。
+	# 只迁移软件中心身份，保留 lucky_ 运行配置和 /koolshare/configs/lucky 数据。
+	local lucky_install=$(dbus get softcenter_module_lucky_melin_install)
+	if [ "${lucky_install}" != "1" ]; then
+		lucky_install=$(dbus get softcenter_module_lucky_install)
+	fi
 	if [ "$lucky_enable" = "1" ] || [ -n "${lucky_process}" ] || [ -d "/koolshare/perp/lucky" ];then
 		echo_date "先关闭Lucky插件！以保证更新成功！"
 		sh /koolshare/scripts/lucky_config.sh stop
@@ -122,6 +127,10 @@ install_now() {
 	rm -rf /koolshare/scripts/lucky*.sh 2>/dev/null
 	rm -rf /koolshare/scripts/*lucky.sh 2>/dev/null
 	rm -rf /koolshare/bin/lucky 2>/dev/null
+	# 清理旧模块身份留下的页面、图标和卸载脚本，避免软件中心同时显示两个 Lucky。
+	rm -f /koolshare/webs/Module_lucky.asp /koolshare/webs/Module_lucky_melin.asp 2>/dev/null
+	rm -f /koolshare/res/icon-lucky.png /koolshare/res/icon-lucky_melin.png 2>/dev/null
+	rm -f /koolshare/scripts/uninstall_lucky.sh /koolshare/scripts/uninstall_lucky_melin.sh 2>/dev/null
 
 	# isntall file
 	echo_date "安装插件相关文件..."
@@ -153,11 +162,20 @@ install_now() {
 	else
 		dbus set lucky_binary="unknown"
 	fi
-	dbus set softcenter_module_lucky_version="${PLVER}"
-	dbus set softcenter_module_lucky_install="1"
-	dbus set softcenter_module_lucky_name="${module}"
-	dbus set softcenter_module_lucky_title="${TITLE}"
-	dbus set softcenter_module_lucky_description="${DESCR}"
+	# 使用独立的软件中心模块身份 lucky_melin，避免再与官方 lucky 插件做版本比较。
+	dbus set softcenter_module_lucky_melin_version="${PLVER}"
+	dbus set softcenter_module_lucky_melin_install="1"
+	dbus set softcenter_module_lucky_melin_name="${module}"
+	dbus set softcenter_module_lucky_melin_title="${TITLE}"
+	dbus set softcenter_module_lucky_melin_description="${DESCR}"
+
+	# 1.6.2 及更早版本曾沿用官方 lucky 模块身份；迁移后删除这些元数据，
+	# 让软件中心不再把本插件与官方仓库中的 Lucky 条目绑定比较。
+	dbus remove softcenter_module_lucky_name
+	dbus remove softcenter_module_lucky_install
+	dbus remove softcenter_module_lucky_version
+	dbus remove softcenter_module_lucky_title
+	dbus remove softcenter_module_lucky_description
 
 	# 检查插件默认dbus值
 	dbus_nset lucky_watchdog "0"

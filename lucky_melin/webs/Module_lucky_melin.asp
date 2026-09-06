@@ -5,9 +5,9 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="-1" />
-<link rel="shortcut icon" href="/res/icon-lucky.png" />
-<link rel="icon" href="/res/icon-lucky.png" />
-<title>软件中心 - Lucky</title>
+<link rel="shortcut icon" href="/res/icon-lucky_melin.png" />
+<link rel="icon" href="/res/icon-lucky_melin.png" />
+<title>软件中心 - Lucky Merlin</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -240,8 +240,8 @@ function show_hide_element(){
 }
 
 function menu_hook(title, tab) {
-	tabtitle[tabtitle.length - 1] = new Array("", "lucky");
-	tablink[tablink.length - 1] = new Array("", "Module_lucky.asp");
+	tabtitle[tabtitle.length - 1] = new Array("", "lucky_melin");
+	tablink[tablink.length - 1] = new Array("", "Module_lucky_melin.asp");
 }
 
 function register_event(){
@@ -560,14 +560,14 @@ function validateInput(input, minValue, maxValue) {
 								<tr>
 									<td bgcolor="#4D595D" colspan="3" valign="top">
 										<div>&nbsp;</div>
-										<div class="formfonttitle">Lucky <lable id="lucky_version"></lable></div>
+										<div class="formfonttitle">Lucky Merlin <lable id="lucky_version"></lable></div>
 										<div style="float: right; width: 15px; height: 25px; margin-top: -20px">
 											<img id="return_btn" alt="" onclick="reload_Soft_Center();" align="right" style="cursor: pointer; position: absolute; margin-left: -30px; margin-top: -25px;" title="返回软件中心" src="/images/backprev.png" onmouseover="this.src='/images/backprevclick.png'" onmouseout="this.src='/images/backprev.png'" />
 										</div>
 										<div style="margin: 10px 0 10px 5px;" class="splitLine"></div>
 										<div class="SimpleNote">
 	                                      <a href="https://lucky666.cn/docs/intro" target="_blank"><em>Lucky</em></a>&nbsp;是一款由Golang写的集合了 <em style='color: gold;'>端口转发 / DDNS / Web服务 / Stun内网穿透 / 网络唤醒 / 计划任务 / ACME自动证书 / 网络存储 </em>等功能的强大网络工具。
-											<span><a type="button" href="https://github.com/vj23456/MerlinLucky" target="_blank" class="ks_btn" style="margin-left:5px;" >项目地址</a></span>
+											<span><a type="button" href="https://github.com/hwyc888/lucky-melin" target="_blank" class="ks_btn" style="margin-left:5px;" >项目地址</a></span>
 											<span><a type="button" class="ks_btn" href="javascript:void(0);" onclick="get_log(1)" style="margin-left:5px;">插件日志</a></span>
 										</div>
 										<div id="lucky_status_pannel">
