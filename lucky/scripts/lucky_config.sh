@@ -9,6 +9,17 @@ LOCK_FILE=/var/lock/lucky.lock
 BASH=${0##*/}
 ARGS=$@
 
+trim_lucky_log(){
+	for FILE in ${LOG_FILE} ${LUCKY_LOG_FILE}; do
+		if [ -f "${FILE}" ]; then
+			SIZE=$(wc -c < "${FILE}" 2>/dev/null)
+			if [ -n "${SIZE}" ] && [ "${SIZE}" -gt 1048576 ]; then
+				tail -c 524288 "${FILE}" > "${FILE}.tmp" 2>/dev/null && mv -f "${FILE}.tmp" "${FILE}"
+			fi
+		fi
+	done
+}
+
 set_lock(){
 	exec 999>${LOCK_FILE}
 	flock -n 999 || {
@@ -27,7 +38,19 @@ unset_lock(){
 }
 
 number_test(){
-	case $1 in
+	resource_status(){
+	local PID=$(pidof lucky)
+	if [ -n "${PID}" ]; then
+		local RSS=$(awk '/VmRSS/{print $2}' /proc/${PID}/status 2>/dev/null)
+		local THREADS=$(awk '/Threads/{print $2}' /proc/${PID}/status 2>/dev/null)
+		local FD=$(ls /proc/${PID}/fd 2>/dev/null | wc -l)
+		http_response "PID=${PID} RSS=${RSS}KB Threads=${THREADS} FD=${FD}"
+	else
+		http_response "Lucky未运行"
+	fi
+}
+
+case $1 in
 		''|*[!0-9]*)
 			echo 1
 			;;
@@ -305,6 +328,9 @@ start_lucky(){
 
 
 case $1 in
+resource_status)
+	resource_status
+	;;
 start)
 	if [ "${lucky_enable}" == "1" ]; then
 		logger "[软件中心-开机自启]: Lucky开始自动启动！"
@@ -315,6 +341,7 @@ start)
 	;;
 boot_up)
 	if [ "${lucky_enable}" == "1" ]; then
+		trim_lucky_log
 		start_lucky | tee -a ${LOG_FILE}
 	fi
 	;;
@@ -342,6 +369,7 @@ esac
 case $2 in
 web_submit)
 	set_lock
+	trim_lucky_log
 	true > ${LOG_FILE}
 	http_response "$1"
 	if [ "${lucky_enable}" == "1" ]; then
