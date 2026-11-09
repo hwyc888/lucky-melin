@@ -1,5 +1,11 @@
 KoolCenter Lucky Changelog
 ===========================================
+3.0.0
+   - update     更新 Lucky 核心至 v3.7.1（来自上游 MerlinLucky v2.0.0 正式安装包）
+   - fix        修复 2.6.7 资源诊断函数嵌套位置错误，恢复 PID/RSS/线程/FD 查询接口
+   - keep       保留本项目 NAT 防重复重启、perp 启动保护、日志限制、Web 轮询和配置保留修复
+   - compat     保留原 lucky_base.lkcf；上游 v2.0.0 未修改 install.sh/lucky_config.sh 的核心调用接口
+
 2.6.7
    - optimize  限制临时日志大小，避免tmpfs长期占用路由器内存
    - add       增加Lucky资源诊断接口，查看PID/RSS/线程/FD

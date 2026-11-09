@@ -38,8 +38,18 @@ unset_lock(){
 }
 
 number_test(){
-	resource_status(){
-	local PID=$(pidof lucky)
+	case $1 in
+		''|*[!0-9]*)
+			echo 1
+			;;
+		*)
+			echo 0
+			;;
+	esac
+}
+
+resource_status(){
+	local PID=$(pidof lucky | awk '{print $1}')
 	if [ -n "${PID}" ]; then
 		local RSS=$(awk '/VmRSS/{print $2}' /proc/${PID}/status 2>/dev/null)
 		local THREADS=$(awk '/Threads/{print $2}' /proc/${PID}/status 2>/dev/null)
@@ -48,16 +58,6 @@ number_test(){
 	else
 		http_response "Lucky未运行"
 	fi
-}
-
-case $1 in
-		''|*[!0-9]*)
-			echo 1
-			;;
-		*)
-			echo 0
-			;;
-	esac
 }
 
 detect_running_status(){
